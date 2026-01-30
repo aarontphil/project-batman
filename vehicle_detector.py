@@ -3,12 +3,12 @@ import argparse
 from pathlib import Path
 import glob
 import os
+import json
 import numpy as np
 import re
 import json
 from datetime import datetime, timedelta
 from ultralytics import YOLO
-
 
 VEHICLE_CLASSES = {
     2: "car",
@@ -37,8 +37,87 @@ def load_model(model_name: str = "yolov8n.pt") -> YOLO:
     return model
 
 
+<<<<<<< HEAD
 from parameters import extract_vehicle_size, extract_vehicle_color, detect_plate_text, find_matches
 from search_ui import launch_ui 
+=======
+def detect_hex_color(crop_img) -> str:
+    h, w = crop_img.shape[:2]
+    start_x = int(w * 0.25)
+    end_x = int(w * 0.75)
+    start_y = int(h * 0.25)
+    end_y = int(h * 0.75)
+    center_crop = crop_img[start_y:end_y, start_x:end_x]
+    
+    if center_crop.size == 0:
+        center_crop = crop_img
+
+    resized = cv2.resize(center_crop, (50, 50))
+    pixels = np.float32(resized.reshape(-1, 3))
+
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    K = 4
+    _, labels, centers = cv2.kmeans(pixels, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+    centers = np.uint8(centers)
+
+    centers_hsv = cv2.cvtColor(np.array([centers]), cv2.COLOR_BGR2HSV)[0]
+    
+    valid_indices = []
+    for i, (h, s, v) in enumerate(centers_hsv):
+        if v < 30: continue
+        if s < 20: continue
+        
+        valid_indices.append(i)
+    
+    if valid_indices:
+        best_idx = max(valid_indices, key=lambda i: centers_hsv[i][1])
+        dominant_bgr = centers[best_idx]
+    else:
+        counts = np.bincount(labels.flatten())
+        most_frequent_idx = np.argmax(counts)
+        dominant_bgr = centers[most_frequent_idx]
+
+    b, g, r = dominant_bgr
+    hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
+            
+    return hex_color
+
+>>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
+
+def save_metadata_to_json(vehicle_events, output_dir="output_data"):
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    now_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"run_{now_str}.json"
+    file_path = Path(output_dir) / filename
+    
+    output_data = {
+        "metadata": {
+            "generated_at": datetime.now().isoformat(),
+            "total_vehicles": len(vehicle_events)
+        },
+        "vehicles": {}
+    }
+    
+    for vid, data in vehicle_events.items():
+        first = data['first_seen_seconds']
+        last = data['last_seen_seconds']
+        duration = last - first
+        
+        output_data["vehicles"][vid] = {
+            "vehicle_type": data['vehicle_type'],
+            "color": data['color'],
+            "first_seen": data['first_seen'],
+            "last_seen": data['last_seen'],
+            "duration": float(f"{duration:.2f}")
+        }
+        
+    with open(file_path, 'w') as f:
+        json.dump(output_data, f, indent=2)
+    
+    print(f"Metadata saved to: {file_path}")
+
 
 def detect_vehicles(model: YOLO, frame, track_colors: dict, confidence_threshold: float = 0.5) -> list:
     results = model.track(frame, persist=True, verbose=False, tracker="custom_tracker.yaml")[0]
@@ -198,21 +277,18 @@ def process_video(
     known_vehicles = set()
     track_colors = {}
     track_history = {}
-    # If vehicle_events is not provided, initialize it (Single Video Mode)
     if vehicle_events is None:
         vehicle_events = {}
-        # Parse start time for single video mode
+
+    if video_start_seconds is None:
         try:
             start_dt = datetime.strptime(start_time, "%H:%M:%S")
-            # If in single video mode, we start from 0 relative to this date or just use time
-            video_start_seconds = 0 # Relative offset
+            video_start_seconds = 0
         except ValueError:
             print(f"Invalid start time format: {start_time}. Using 00:00:00")
             start_dt = datetime.strptime("00:00:00", "%H:%M:%S")
             video_start_seconds = 0
             
-    # If video_start_seconds is provided (Multi-Video Mode), we use it as absolute epoch
-    # If not (Single Video), we use start_dt parsed above
     
     print("\nProcessing video... Press 'q' to quit early.")
     
@@ -244,16 +320,15 @@ def process_video(
                     
                     elapsed_seconds = frame_count / fps
                     if video_start_seconds is not None and video_start_seconds > 0:
-                        # Multi-video mode: absolute timestamp
                         current_abs_time = video_start_seconds + elapsed_seconds
                         current_dt = datetime.fromtimestamp(current_abs_time)
                         current_time_str = current_dt.strftime("%Y-%m-%d %H:%M:%S")
+                        float_timestamp = current_abs_time
                     else:
-                        # Single video mode: relative start_time offset
                         current_dt = start_dt + timedelta(seconds=elapsed_seconds)
                         current_time_str = current_dt.strftime("%H:%M:%S")
+                        float_timestamp = elapsed_seconds 
                     
-                    # Prefix ID to ensure uniqueness across videos
                     unique_tid = f"{video_id_prefix}{tid}"
                     
                     if unique_tid not in vehicle_events:
@@ -283,6 +358,7 @@ def process_video(
                             'aspect_ratio': aspect_ratio,
                             'first_seen': current_time_str,
                             'last_seen': current_time_str,
+<<<<<<< HEAD
                             'first_seen_seconds': elapsed_seconds, # relative for specific video duration
                             'last_seen_seconds': elapsed_seconds,
                             'source_video': str(input_path)
@@ -303,15 +379,22 @@ def process_video(
                         new_plate = plate_data_obj.get('plate_text', '')
                         if len(new_plate) > len(vehicle_events[unique_tid].get('plate_text', '')):
                             vehicle_events[unique_tid]['plate_text'] = new_plate
+=======
+                            'first_seen_seconds': float_timestamp,
+                            'last_seen_seconds': float_timestamp
+                        }
+                    else:
+                        vehicle_events[unique_tid]['last_seen'] = current_time_str
+                        vehicle_events[unique_tid]['last_seen_seconds'] = float_timestamp
+>>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
             
             annotated_frame = draw_detections(frame, confirmed_detections)
             
-            # Recalculate time for display
             elapsed_seconds = frame_count / fps
             if video_start_seconds is not None and video_start_seconds > 0:
                  current_abs_time = video_start_seconds + elapsed_seconds
                  current_dt = datetime.fromtimestamp(current_abs_time)
-                 current_time_str = current_dt.strftime("%H:%M:%S") # Just show time on overlay
+                 current_time_str = current_dt.strftime("%H:%M:%S")
             else:
                  current_dt = start_dt + timedelta(seconds=elapsed_seconds)
                  current_time_str = current_dt.strftime("%H:%M:%S")
@@ -356,8 +439,6 @@ def process_video(
     print(f"Total frames processed: {frame_count}")
     print(f"Total unique vehicles tracked: {len(known_vehicles)}")
     
-    # Only print timeline here if NOT in sequence mode (controlled by caller)
-    # But for simplicity, we can print it if start_seconds is 0 (single video mode)
     if video_start_seconds == 0 or video_start_seconds is None:
         print("\n" + "="*20 + " VEHICLE EVENT TIMELINE " + "="*20)
         print(f"{'ID':<10} | {'Type':<10} | {'Color':<10} | {'Duration':<10} | {'First Seen':<20} | {'Last Seen':<20}")
@@ -391,8 +472,6 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
     for i, file_path in enumerate(mp4_files):
         print(f"\n--- Processing Video {i+1}/{len(mp4_files)}: {file_path.name} ---")
         
-        # Parse timestamp using regex to handle double extensions or extra chars
-        # Pattern: YYYY-MM-DD_HH-MM-SS
         match = re.search(r"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})", file_path.name)
         
         try:
@@ -402,7 +481,6 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
                 start_seconds = dt.timestamp()
                 print(f"Parsed Start Time: {dt}")
             else:
-                # Fallback to simple split or raise error
                 print(f"Warning: Could not find timestamp pattern in {file_path.name}. Using system time.")
                 start_seconds = datetime.now().timestamp()
         except ValueError:
@@ -432,6 +510,7 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
     
     print("="*90)
     
+<<<<<<< HEAD
     # Matching Analysis
     print("\n" + "="*20 + " GLOBAL MATCHING REPORT " + "="*20)
     clusters = find_matches(global_vehicle_events)
@@ -451,6 +530,9 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
     with open(db_path, "w") as f:
         json.dump(global_vehicle_events, f, indent=4)
     print(f"Vehicle Database saved to {db_path}")
+=======
+    save_metadata_to_json(global_vehicle_events)
+>>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
 
 
 def main():
@@ -506,6 +588,7 @@ def main():
     )
     
     args = parser.parse_args()
+<<<<<<< HEAD
     
     if args.ui:
         print("Launching User Interface...")
@@ -517,6 +600,8 @@ def main():
         return
 
     # Check if input is directory
+=======
+>>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
     input_path = Path(args.input)
     
     if input_path.is_dir():
@@ -528,13 +613,13 @@ def main():
             save=args.save
         )
     else:
-        # Single video mode
-        # Auto-detect start time if not provided
         if args.start_time is None:
             filename = input_path.name
             args.start_time = VIDEO_START_TIMES.get(filename, "00:00:00")
             if args.start_time != "00:00:00":
                 print(f"Auto-detected start time for {filename}: {args.start_time}")
+        
+        events = {}
         
         process_video(
             input_path=args.input,
@@ -543,8 +628,11 @@ def main():
             confidence_threshold=args.confidence,
             start_time=args.start_time,
             display=not args.no_display,
-            save=args.save
+            save=args.save,
+            vehicle_events=events,
         )
+        
+        save_metadata_to_json(events)
 
 
 if __name__ == "__main__":
