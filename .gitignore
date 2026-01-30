@@ -1,9 +1,7 @@
 # Model weights (auto-downloaded)
 *.pt
 
-# Sample videos
-sample_traffic.mp4
-sample_traffic_detected.mp4
+# Output videos
 *_detected.mp4
 
 # Python
