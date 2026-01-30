@@ -5,6 +5,7 @@ import glob
 import os
 import numpy as np
 import re
+import json
 from datetime import datetime, timedelta
 from ultralytics import YOLO
 
@@ -36,62 +37,8 @@ def load_model(model_name: str = "yolov8n.pt") -> YOLO:
     return model
 
 
-def detect_hex_color(crop_img) -> str:
-    # Center Crop: Focus on the middle 50% to avoid background/road
-    h, w = crop_img.shape[:2]
-    start_x = int(w * 0.25)
-    end_x = int(w * 0.75)
-    start_y = int(h * 0.25)
-    end_y = int(h * 0.75)
-    center_crop = crop_img[start_y:end_y, start_x:end_x]
-    
-    if center_crop.size == 0:
-        center_crop = crop_img # Fallback if crop failed
-
-    # Resize for speed
-    resized = cv2.resize(center_crop, (50, 50))
-    # Reshape to list of pixels
-    pixels = np.float32(resized.reshape(-1, 3))
-
-    # K-Means Clustering (K=4: Shadow, Highlight, Road, Body)
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    K = 4
-    _, labels, centers = cv2.kmeans(pixels, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
-
-    # Convert back to uint8
-    centers = np.uint8(centers)
-
-    # Convert centers to HSV to check saturation/value
-    centers_hsv = cv2.cvtColor(np.array([centers]), cv2.COLOR_BGR2HSV)[0]
-    
-    # Filter out "boring" colors (Road, Shadow)
-    valid_indices = []
-    for i, (h, s, v) in enumerate(centers_hsv):
-        # Ignore very dark (Shadow/Tires)
-        if v < 30: continue
-        # Ignore very unsaturated (Road/Grey) unless it's bright white
-        # We keep it if it's the *only* option later, but prefer color
-        if s < 20: continue
-        
-        valid_indices.append(i)
-    
-    if valid_indices:
-        # From valid colors, pick the most saturated one
-        best_idx = max(valid_indices, key=lambda i: centers_hsv[i][1])
-        dominant_bgr = centers[best_idx]
-    else:
-        # Fallback: If everything is grey/black (Silver/Black car), pick the most frequent label
-        # Count labels to find most frequent cluster
-        counts = np.bincount(labels.flatten())
-        most_frequent_idx = np.argmax(counts)
-        dominant_bgr = centers[most_frequent_idx]
-
-    # Convert BGR to Hex
-    b, g, r = dominant_bgr
-    hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
-            
-    return hex_color
-
+from parameters import extract_vehicle_size, extract_vehicle_color, detect_plate_text, find_matches
+from search_ui import launch_ui 
 
 def detect_vehicles(model: YOLO, frame, track_colors: dict, confidence_threshold: float = 0.5) -> list:
     results = model.track(frame, persist=True, verbose=False, tracker="custom_tracker.yaml")[0]
@@ -108,54 +55,72 @@ def detect_vehicles(model: YOLO, frame, track_colors: dict, confidence_threshold
             if class_id in VEHICLE_CLASSES and conf >= confidence_threshold:
                 x1, y1, x2, y2 = box
                 
-                if track_id in track_colors:
-                    color = track_colors[track_id]
-                else:
-                    h, w = frame.shape[:2]
-                    x1_c, y1_c = max(0, x1), max(0, y1)
-                    x2_c, y2_c = min(w, x2), min(h, y2)
-                    
-                    vehicle_crop = frame[y1_c:y2_c, x1_c:x2_c]
-                    color = detect_hex_color(vehicle_crop)
-                    track_colors[track_id] = color
+                # Size Analysis
+                size_data = extract_vehicle_size(box, frame.shape)
                 
+                # Color Analysis
+                if track_id in track_colors:
+                    color_data = track_colors[track_id]
+                else:
+                    color_data = extract_vehicle_color(frame, box)
+                    if color_data.get("dominant_color") != "unknown":
+                        track_colors[track_id] = color_data
+                
+                # Plate Analysis
+                plate_data = detect_plate_text(frame, box)
                 
                 detections.append({
                     'class_name': VEHICLE_CLASSES[class_id],
                     'confidence': conf,
                     'bbox': (x1, y1, x2, y2),
                     'track_id': track_id,
-                    'color': color
+                    'color_data': color_data,
+                    'size_data': size_data,
+                    'plate_data': plate_data
                 })
     
     return detections
-
 
 def draw_detections(frame, detections: list):
     annotated_frame = frame.copy()
     
     for det in detections:
         class_name = det['class_name']
-        confidence = det['confidence']
         track_id = det.get('track_id', 'N/A')
-        vehicle_color = det.get('color', 'Unknown')
+        
+        # Extract new parameters
+        color_info = det.get('color_data', {})
+        size_info = det.get('size_data', {})
+        plate_info = det.get('plate_data', {})
+        
+        color_name = color_info.get('dominant_color', 'Unknown')
+        rgb_color = color_info.get('rgb_value', (255, 255, 255))
+        hex_val = color_info.get('hex_value', '')
+        size_label = size_info.get('size_class', 'N/A')
+        
+        plate_text = plate_info.get('plate_text', '')
+        plate_found = plate_info.get('plate_detected', False)
+        
         x1, y1, x2, y2 = det['bbox']
         
-        hex_str = vehicle_color.lstrip('#')
-        if len(hex_str) == 6:
-            r, g, b = tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
-            bbox_color = (b, g, r) 
+        # Color Handling (RGB to BGR for OpenCV)
+        if isinstance(rgb_color, (list, tuple)) and len(rgb_color) == 3:
+            bbox_color = (rgb_color[2], rgb_color[1], rgb_color[0])
         else:
-            bbox_color = (255, 255, 255)
+            bbox_color = (0, 255, 0)
         
         cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), bbox_color, 2)
         
-        label = f"#{track_id} [{vehicle_color}] {class_name}"
+        # Label Construction with Hex
+        label = f"#{track_id} {color_name} {hex_val}"
+        if plate_found and plate_text:
+             label += f" [{plate_text}]"
         
         (label_width, label_height), baseline = cv2.getTextSize(
-            label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+            label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1
         )
         
+        # Draw Label Background
         cv2.rectangle(
             annotated_frame,
             (x1, y1 - label_height - 10),
@@ -164,17 +129,27 @@ def draw_detections(frame, detections: list):
             -1
         )
         
+        # Determine Text Color (Contrast)
+        # Luminance: 0.299*R + 0.587*G + 0.114*B
+        # bbox_color is BGR
+        luminance = 0.299*bbox_color[2] + 0.587*bbox_color[1] + 0.114*bbox_color[0]
+        text_color = (0, 0, 0) if luminance > 127 else (255, 255, 255)
+        
+        # Draw Label Text
         cv2.putText(
             annotated_frame,
             label,
             (x1, y1 - 5),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (0, 0, 0),
-            2
+            0.5,
+            text_color,
+            1
         )
     
     return annotated_frame
+
+
+
 
 
 def process_video(
@@ -267,6 +242,7 @@ def process_video(
                     
                         known_vehicles.add(tid)
                     
+                    elapsed_seconds = frame_count / fps
                     if video_start_seconds is not None and video_start_seconds > 0:
                         # Multi-video mode: absolute timestamp
                         current_abs_time = video_start_seconds + elapsed_seconds
@@ -281,18 +257,52 @@ def process_video(
                     unique_tid = f"{video_id_prefix}{tid}"
                     
                     if unique_tid not in vehicle_events:
+                        # Extract string color for event log
+                        color_data_obj = det.get('color_data', {})
+                        color_str = color_data_obj.get('dominant_color', 'Unknown')
+                        rgb_val = color_data_obj.get('rgb_value', None)
+                        hex_val = color_data_obj.get('hex_value', '#000000')
+                        color_hist = color_data_obj.get('color_histogram', None)
+                        
+                        plate_data_obj = det.get('plate_data', {})
+                        plate_str = plate_data_obj.get('plate_text', '')
+                        
+                        size_data_obj = det.get('size_data', {})
+                        size_class = size_data_obj.get('size_class', 'unknown')
+                        aspect_ratio = size_data_obj.get('aspect_ratio', 0.0)
+                        
                         vehicle_events[unique_tid] = {
                             'vehicle_id': unique_tid,
                             'vehicle_type': det['class_name'],
-                            'color': det['color'],
+                            'color': color_str,
+                            'hex_value': hex_val,
+                            'rgb_value': rgb_val,
+                            'color_histogram': color_hist,
+                            'plate_text': plate_str,
+                            'size_class': size_class,
+                            'aspect_ratio': aspect_ratio,
                             'first_seen': current_time_str,
                             'last_seen': current_time_str,
                             'first_seen_seconds': elapsed_seconds, # relative for specific video duration
-                            'last_seen_seconds': elapsed_seconds
+                            'last_seen_seconds': elapsed_seconds,
+                            'source_video': str(input_path)
                         }
                     else:
                         vehicle_events[unique_tid]['last_seen'] = current_time_str
                         vehicle_events[unique_tid]['last_seen_seconds'] = elapsed_seconds
+                        
+                        # Update color information continuously (Dynamic Update)
+                        color_data_obj = det.get('color_data', {})
+                        vehicle_events[unique_tid]['color'] = color_data_obj.get('dominant_color', 'Unknown')
+                        vehicle_events[unique_tid]['hex_value'] = color_data_obj.get('hex_value', '#000000')
+                        vehicle_events[unique_tid]['rgb_value'] = color_data_obj.get('rgb_value', None)
+                        vehicle_events[unique_tid]['color_histogram'] = color_data_obj.get('color_histogram', None)
+                        
+                        # Update plate text if we found a better one (longer)
+                        plate_data_obj = det.get('plate_data', {})
+                        new_plate = plate_data_obj.get('plate_text', '')
+                        if len(new_plate) > len(vehicle_events[unique_tid].get('plate_text', '')):
+                            vehicle_events[unique_tid]['plate_text'] = new_plate
             
             annotated_frame = draw_detections(frame, confirmed_detections)
             
@@ -421,6 +431,26 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
         print(f"{vid:<10} | {data['vehicle_type']:<10} | {data['color']:<10} | {duration:>8.2f}s | {data['first_seen']:>20} | {data['last_seen']:>20}")
     
     print("="*90)
+    
+    # Matching Analysis
+    print("\n" + "="*20 + " GLOBAL MATCHING REPORT " + "="*20)
+    clusters = find_matches(global_vehicle_events)
+    
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 1:
+            print(f"Vehicle Group {i+1}: Found in multiple videos/sequences")
+            for vid in cluster:
+                data = global_vehicle_events[vid]
+                print(f"  - {vid:<10} ({data['color']} {data['vehicle_type']}) at {data['first_seen']}")
+            print("-" * 40)
+            
+    print("="*90)
+    
+    # Save to JSON
+    db_path = "vehicle_db.json"
+    with open(db_path, "w") as f:
+        json.dump(global_vehicle_events, f, indent=4)
+    print(f"Vehicle Database saved to {db_path}")
 
 
 def main():
@@ -429,8 +459,10 @@ def main():
     )
     parser.add_argument(
         "input",
+        nargs='?',
+        default=None,
         type=str,
-        help="Path to input video file"
+        help="Path to input video file or directory"
     )
     parser.add_argument(
         "-o", "--output",
@@ -444,6 +476,11 @@ def main():
         default="yolov8n.pt",
         choices=["yolov8n.pt", "yolov8s.pt", "yolov8m.pt", "yolov8l.pt", "yolov8x.pt"],
         help="YOLO model variant (default: yolov8n.pt - fastest)"
+    )
+    parser.add_argument(
+        "--ui",
+        action="store_true",
+        help="Launch the Vehicle Search UI"
     )
     parser.add_argument(
         "-c", "--confidence",
@@ -469,6 +506,16 @@ def main():
     )
     
     args = parser.parse_args()
+    
+    if args.ui:
+        print("Launching User Interface...")
+        launch_ui()
+        return
+
+    if args.input is None:
+        parser.print_help()
+        return
+
     # Check if input is directory
     input_path = Path(args.input)
     
