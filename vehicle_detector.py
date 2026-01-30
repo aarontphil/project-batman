@@ -2,6 +2,7 @@ import cv2
 import argparse
 from pathlib import Path
 import numpy as np
+from datetime import datetime, timedelta
 from ultralytics import YOLO
 
 
@@ -19,8 +20,10 @@ COLORS = {
     "truck": (0, 255, 255)
 }
 
-# Color ranges removed in favor of K-Means
-
+VIDEO_START_TIMES = {
+    "videosp.mp4": "07:30:06",
+    "sample_traffic.mp4": "13:45:00",
+}
 
 
 def load_model(model_name: str = "yolov8n.pt") -> YOLO:
@@ -31,45 +34,30 @@ def load_model(model_name: str = "yolov8n.pt") -> YOLO:
 
 
 def detect_hex_color(crop_img) -> str:
-    """
-    Detects the dominant hex color using K-Means clustering.
-    Returns format: '#RRGGBB'
-    """
     if crop_img.size == 0:
         return "#000000"
 
-    # Resize for speed
     resized = cv2.resize(crop_img, (50, 50))
-    # Reshape to list of pixels
     pixels = np.float32(resized.reshape(-1, 3))
 
-    # K-Means Clustering (K=2: Background vs Car)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
     K = 2
     _, labels, centers = cv2.kmeans(pixels, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
-    # Convert back to uint8
     centers = np.uint8(centers)
 
-    # Simple heuristic: Choose the color with higher saturation (car body vs road/tires)
-    # Convert centers to HSV to check saturation
     centers_hsv = cv2.cvtColor(np.array([centers]), cv2.COLOR_BGR2HSV)[0]
     
-    # Sort by saturation (descending)
     sorted_indices = np.argsort(centers_hsv[:, 1])[::-1]
     dominant_bgr = centers[sorted_indices[0]]
 
-    # Convert BGR to Hex
     b, g, r = dominant_bgr
     hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
             
     return hex_color
 
 
-
-
 def detect_vehicles(model: YOLO, frame, track_colors: dict, confidence_threshold: float = 0.5) -> list:
-    # Use track() with custom config to fix ID switching
     results = model.track(frame, persist=True, verbose=False, tracker="custom_tracker.yaml")[0]
     
     detections = []
@@ -84,11 +72,9 @@ def detect_vehicles(model: YOLO, frame, track_colors: dict, confidence_threshold
             if class_id in VEHICLE_CLASSES and conf >= confidence_threshold:
                 x1, y1, x2, y2 = box
                 
-                # Color Detection Optimization: Only calculate if not already known
                 if track_id in track_colors:
                     color = track_colors[track_id]
                 else:
-                    # Extract crop for color detection
                     h, w = frame.shape[:2]
                     x1_c, y1_c = max(0, x1), max(0, y1)
                     x2_c, y2_c = min(w, x2), min(h, y2)
@@ -119,12 +105,9 @@ def draw_detections(frame, detections: list):
         vehicle_color = det.get('color', 'Unknown')
         x1, y1, x2, y2 = det['bbox']
         
-        # Parse Hex to RGB for rectangle color
         hex_str = vehicle_color.lstrip('#')
-        # Default to white if parsing fails
         if len(hex_str) == 6:
             r, g, b = tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
-            # OpenCV uses BGR
             bbox_color = (b, g, r) 
         else:
             bbox_color = (255, 255, 255)
@@ -163,6 +146,7 @@ def process_video(
     output_path: str = None,
     model_name: str = "yolov8n.pt",
     confidence_threshold: float = 0.5,
+    start_time: str = "00:00:00",
     display: bool = True,
     save: bool = True
 ):
@@ -184,6 +168,9 @@ def process_video(
     print(f"Video: {input_path.name}")
     print(f"Resolution: {width}x{height}, FPS: {fps}, Total frames: {total_frames}")
     
+    noise_threshold = max(3, int(fps * 0.5))
+    print(f"Adaptive Noise Filter: Removing tracks shorter than {noise_threshold} frames ({noise_threshold/fps:.2f}s)")
+    
     writer = None
     if save:
         if output_path is None:
@@ -195,9 +182,16 @@ def process_video(
         print(f"Output will be saved to: {output_path}")
     frame_count = 0
     known_vehicles = set()
-    track_colors = {}  # Cache for vehicle colors: {track_id: hex_string}
-    track_history = {} # Count frames seen for noise filtering
+    track_colors = {}
+    track_history = {}
+    vehicle_events = {}
     
+    try:
+        start_dt = datetime.strptime(start_time, "%H:%M:%S")
+    except ValueError:
+        print(f"Invalid start time format: {start_time}. Using 00:00:00")
+        start_dt = datetime.strptime("00:00:00", "%H:%M:%S")
+
     print("\nProcessing video... Press 'q' to quit early.")
     
     try:
@@ -210,27 +204,48 @@ def process_video(
             
             detections = detect_vehicles(model, frame, track_colors, confidence_threshold)
             
-            # Filtered detections for display
             confirmed_detections = []
             
-            # Update history and filter noise
             current_ids = []
             for det in detections:
                 tid = det['track_id']
                 current_ids.append(tid)
                 
-                # Increment history
                 track_history[tid] = track_history.get(tid, 0) + 1
                 
-                # Only show/count if seen for > 15 frames (0.5s)
-                if track_history[tid] > 15:
+                if track_history[tid] > noise_threshold:
                     confirmed_detections.append(det)
                     if tid not in known_vehicles:
                         known_vehicles.add(tid)
+                    
+                        known_vehicles.add(tid)
+                    
+                    elapsed_seconds = frame_count / fps
+                    current_dt = start_dt + timedelta(seconds=elapsed_seconds)
+                    current_time_str = current_dt.strftime("%H:%M:%S")
+                    
+                    if tid not in vehicle_events:
+                        vehicle_events[tid] = {
+                            'vehicle_id': tid,
+                            'vehicle_type': det['class_name'],
+                            'color': det['color'],
+                            'first_seen': current_time_str,
+                            'last_seen': current_time_str,
+                            'first_seen_seconds': elapsed_seconds,
+                            'last_seen_seconds': elapsed_seconds
+                        }
+                    else:
+                        vehicle_events[tid]['last_seen'] = current_time_str
+                        vehicle_events[tid]['last_seen_seconds'] = elapsed_seconds
             
             annotated_frame = draw_detections(frame, confirmed_detections)
             
-            info_text = f"Frame: {frame_count}/{total_frames} | Unique Vehicles: {len(known_vehicles)}"
+            elapsed_seconds = frame_count / fps
+            current_dt = start_dt + timedelta(seconds=elapsed_seconds)
+            current_time_str = current_dt.strftime("%H:%M:%S")
+
+
+            info_text = f"Time: {current_time_str} | Vehicles: {len(known_vehicles)}"
             cv2.putText(
                 annotated_frame,
                 info_text,
@@ -264,6 +279,17 @@ def process_video(
     print("Processing Complete!")
     print(f"Total frames processed: {frame_count}")
     print(f"Total unique vehicles tracked: {len(known_vehicles)}")
+    
+    print("\n" + "="*20 + " VEHICLE EVENT TIMELINE " + "="*20)
+    print(f"{'ID':<5} | {'Type':<10} | {'Color':<10} | {'Duration':<10} | {'First Seen':<10} | {'Last Seen':<10}")
+    print("-" * 75)
+    
+    for vid, data in vehicle_events.items():
+        duration = data['last_seen_seconds'] - data['first_seen_seconds']
+        print(f"{vid:<5} | {data['vehicle_type']:<10} | {data['color']:<10} | {duration:>8.2f}s | {data['first_seen']:>10} | {data['last_seen']:>10}")
+    
+    print("="*66)
+
     if save and output_path:
         print(f"Output saved to: {output_path}")
     print("="*50)
@@ -298,6 +324,12 @@ def main():
         help="Confidence threshold for detections (default: 0.5)"
     )
     parser.add_argument(
+        "--start-time",
+        type=str,
+        default=None,
+        help="Start time of the video in HH:MM:SS format (default: auto-detected or 00:00:00)"
+    )
+    parser.add_argument(
         "--no-display",
         action="store_true",
         help="Disable real-time display"
@@ -310,11 +342,18 @@ def main():
     
     args = parser.parse_args()
     
+    if args.start_time is None:
+        filename = Path(args.input).name
+        args.start_time = VIDEO_START_TIMES.get(filename, "00:00:00")
+        if args.start_time != "00:00:00":
+            print(f"Auto-detected start time for {filename}: {args.start_time}")
+    
     process_video(
         input_path=args.input,
         output_path=args.output,
         model_name=args.model,
         confidence_threshold=args.confidence,
+        start_time=args.start_time,
         display=not args.no_display,
         save=not args.no_save
     )
