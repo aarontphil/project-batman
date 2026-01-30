@@ -1,0 +1,533 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-31T02:45:08.837062",
+    "total_vehicles": 75
+  },
+  "vehicles": {
+    "0_1": {
+      "vehicle_type": "car",
+      "color": "#090c27",
+      "first_seen": "2024-01-10 07:30:06",
+      "last_seen": "2024-01-10 07:30:17",
+      "duration": 11.3
+    },
+    "0_4": {
+      "vehicle_type": "car",
+      "color": "#060930",
+      "first_seen": "2024-01-10 07:30:06",
+      "last_seen": "2024-01-10 07:30:09",
+      "duration": 2.43
+    },
+    "0_5": {
+      "vehicle_type": "truck",
+      "color": "#418047",
+      "first_seen": "2024-01-10 07:30:09",
+      "last_seen": "2024-01-10 07:30:14",
+      "duration": 5.53
+    },
+    "0_6": {
+      "vehicle_type": "truck",
+      "color": "#101424",
+      "first_seen": "2024-01-10 07:30:09",
+      "last_seen": "2024-01-10 07:30:12",
+      "duration": 2.13
+    },
+    "0_8": {
+      "vehicle_type": "car",
+      "color": "#091235",
+      "first_seen": "2024-01-10 07:30:11",
+      "last_seen": "2024-01-10 07:30:13",
+      "duration": 2.13
+    },
+    "0_9": {
+      "vehicle_type": "car",
+      "color": "#1e263f",
+      "first_seen": "2024-01-10 07:30:13",
+      "last_seen": "2024-01-10 07:30:16",
+      "duration": 2.53
+    },
+    "0_10": {
+      "vehicle_type": "car",
+      "color": "#401422",
+      "first_seen": "2024-01-10 07:30:14",
+      "last_seen": "2024-01-10 07:30:15",
+      "duration": 1.23
+    },
+    "0_13": {
+      "vehicle_type": "car",
+      "color": "#383d50",
+      "first_seen": "2024-01-10 07:30:16",
+      "last_seen": "2024-01-10 07:30:17",
+      "duration": 1.53
+    },
+    "0_14": {
+      "vehicle_type": "car",
+      "color": "#111332",
+      "first_seen": "2024-01-10 07:30:16",
+      "last_seen": "2024-01-10 07:30:17",
+      "duration": 1.03
+    },
+    "0_16": {
+      "vehicle_type": "truck",
+      "color": "#131529",
+      "first_seen": "2024-01-10 07:30:18",
+      "last_seen": "2024-01-10 07:30:19",
+      "duration": 1.33
+    },
+    "0_17": {
+      "vehicle_type": "truck",
+      "color": "#0f101e",
+      "first_seen": "2024-01-10 07:30:22",
+      "last_seen": "2024-01-10 07:30:23",
+      "duration": 0.43
+    },
+    "1_1": {
+      "vehicle_type": "car",
+      "color": "#2a3d53",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:33",
+      "duration": 16.23
+    },
+    "1_2": {
+      "vehicle_type": "car",
+      "color": "#0d3589",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:17",
+      "duration": 0.33
+    },
+    "1_3": {
+      "vehicle_type": "car",
+      "color": "#494358",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:35",
+      "duration": 17.57
+    },
+    "1_4": {
+      "vehicle_type": "car",
+      "color": "#b03145",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:19",
+      "duration": 2.03
+    },
+    "1_5": {
+      "vehicle_type": "car",
+      "color": "#232a39",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:20",
+      "duration": 3.23
+    },
+    "1_6": {
+      "vehicle_type": "car",
+      "color": "#272e41",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:25",
+      "duration": 8.43
+    },
+    "1_7": {
+      "vehicle_type": "car",
+      "color": "#181c2a",
+      "first_seen": "2024-01-10 07:35:17",
+      "last_seen": "2024-01-10 07:35:23",
+      "duration": 6.03
+    },
+    "1_8": {
+      "vehicle_type": "car",
+      "color": "#242533",
+      "first_seen": "2024-01-10 07:35:18",
+      "last_seen": "2024-01-10 07:35:18",
+      "duration": 0.03
+    },
+    "1_9": {
+      "vehicle_type": "car",
+      "color": "#0b1125",
+      "first_seen": "2024-01-10 07:35:19",
+      "last_seen": "2024-01-10 07:35:20",
+      "duration": 1.53
+    },
+    "1_11": {
+      "vehicle_type": "car",
+      "color": "#344869",
+      "first_seen": "2024-01-10 07:35:21",
+      "last_seen": "2024-01-10 07:35:22",
+      "duration": 1.13
+    },
+    "1_10": {
+      "vehicle_type": "truck",
+      "color": "#70bf75",
+      "first_seen": "2024-01-10 07:35:21",
+      "last_seen": "2024-01-10 07:35:22",
+      "duration": 0.43
+    },
+    "1_12": {
+      "vehicle_type": "car",
+      "color": "#5d6e81",
+      "first_seen": "2024-01-10 07:35:22",
+      "last_seen": "2024-01-10 07:35:24",
+      "duration": 2.23
+    },
+    "1_14": {
+      "vehicle_type": "car",
+      "color": "#5a1c2e",
+      "first_seen": "2024-01-10 07:35:24",
+      "last_seen": "2024-01-10 07:35:24",
+      "duration": 0.43
+    },
+    "1_15": {
+      "vehicle_type": "car",
+      "color": "#12182a",
+      "first_seen": "2024-01-10 07:35:25",
+      "last_seen": "2024-01-10 07:35:27",
+      "duration": 2.63
+    },
+    "1_19": {
+      "vehicle_type": "car",
+      "color": "#0b1326",
+      "first_seen": "2024-01-10 07:35:26",
+      "last_seen": "2024-01-10 07:35:27",
+      "duration": 0.23
+    },
+    "1_20": {
+      "vehicle_type": "car",
+      "color": "#384051",
+      "first_seen": "2024-01-10 07:35:26",
+      "last_seen": "2024-01-10 07:35:28",
+      "duration": 2.03
+    },
+    "1_21": {
+      "vehicle_type": "car",
+      "color": "#0e1222",
+      "first_seen": "2024-01-10 07:35:27",
+      "last_seen": "2024-01-10 07:35:35",
+      "duration": 7.77
+    },
+    "1_23": {
+      "vehicle_type": "truck",
+      "color": "#0f1222",
+      "first_seen": "2024-01-10 07:35:29",
+      "last_seen": "2024-01-10 07:35:30",
+      "duration": 1.83
+    },
+    "1_25": {
+      "vehicle_type": "truck",
+      "color": "#121926",
+      "first_seen": "2024-01-10 07:35:33",
+      "last_seen": "2024-01-10 07:35:33",
+      "duration": 0.53
+    },
+    "2_1": {
+      "vehicle_type": "car",
+      "color": "#c6475e",
+      "first_seen": "2024-01-10 07:42:38",
+      "last_seen": "2024-01-10 07:42:39",
+      "duration": 1.47
+    },
+    "2_2": {
+      "vehicle_type": "car",
+      "color": "#141a2b",
+      "first_seen": "2024-01-10 07:42:38",
+      "last_seen": "2024-01-10 07:42:55",
+      "duration": 17.07
+    },
+    "2_3": {
+      "vehicle_type": "car",
+      "color": "#121932",
+      "first_seen": "2024-01-10 07:42:38",
+      "last_seen": "2024-01-10 07:42:53",
+      "duration": 15.47
+    },
+    "2_4": {
+      "vehicle_type": "car",
+      "color": "#212a45",
+      "first_seen": "2024-01-10 07:42:40",
+      "last_seen": "2024-01-10 07:42:52",
+      "duration": 12.23
+    },
+    "2_5": {
+      "vehicle_type": "car",
+      "color": "#1e3374",
+      "first_seen": "2024-01-10 07:42:40",
+      "last_seen": "2024-01-10 07:42:52",
+      "duration": 12.23
+    },
+    "2_7": {
+      "vehicle_type": "car",
+      "color": "#29313d",
+      "first_seen": "2024-01-10 07:42:42",
+      "last_seen": "2024-01-10 07:42:42",
+      "duration": 0.33
+    },
+    "2_8": {
+      "vehicle_type": "car",
+      "color": "#0c1126",
+      "first_seen": "2024-01-10 07:42:43",
+      "last_seen": "2024-01-10 07:42:52",
+      "duration": 8.93
+    },
+    "2_10": {
+      "vehicle_type": "truck",
+      "color": "#162827",
+      "first_seen": "2024-01-10 07:42:44",
+      "last_seen": "2024-01-10 07:42:55",
+      "duration": 10.5
+    },
+    "2_11": {
+      "vehicle_type": "car",
+      "color": "#181e38",
+      "first_seen": "2024-01-10 07:42:45",
+      "last_seen": "2024-01-10 07:42:51",
+      "duration": 6.23
+    },
+    "2_13": {
+      "vehicle_type": "car",
+      "color": "#5d3844",
+      "first_seen": "2024-01-10 07:42:48",
+      "last_seen": "2024-01-10 07:42:58",
+      "duration": 9.53
+    },
+    "2_15": {
+      "vehicle_type": "car",
+      "color": "#1e2840",
+      "first_seen": "2024-01-10 07:42:50",
+      "last_seen": "2024-01-10 07:42:52",
+      "duration": 1.43
+    },
+    "2_16": {
+      "vehicle_type": "car",
+      "color": "#272f3d",
+      "first_seen": "2024-01-10 07:42:50",
+      "last_seen": "2024-01-10 07:42:51",
+      "duration": 0.53
+    },
+    "2_17": {
+      "vehicle_type": "car",
+      "color": "#3c4a5b",
+      "first_seen": "2024-01-10 07:42:51",
+      "last_seen": "2024-01-10 07:42:59",
+      "duration": 8.17
+    },
+    "2_20": {
+      "vehicle_type": "car",
+      "color": "#1a222f",
+      "first_seen": "2024-01-10 07:42:54",
+      "last_seen": "2024-01-10 07:42:58",
+      "duration": 3.63
+    },
+    "2_21": {
+      "vehicle_type": "car",
+      "color": "#526070",
+      "first_seen": "2024-01-10 07:42:56",
+      "last_seen": "2024-01-10 07:42:59",
+      "duration": 3.23
+    },
+    "2_22": {
+      "vehicle_type": "car",
+      "color": "#2d3b4f",
+      "first_seen": "2024-01-10 07:42:56",
+      "last_seen": "2024-01-10 07:42:59",
+      "duration": 2.77
+    },
+    "2_23": {
+      "vehicle_type": "car",
+      "color": "#080b1e",
+      "first_seen": "2024-01-10 07:42:56",
+      "last_seen": "2024-01-10 07:42:59",
+      "duration": 2.67
+    },
+    "3_1": {
+      "vehicle_type": "car",
+      "color": "#0e1334",
+      "first_seen": "2024-01-10 07:50:02",
+      "last_seen": "2024-01-10 07:50:05",
+      "duration": 2.8
+    },
+    "3_2": {
+      "vehicle_type": "bus",
+      "color": "#1e2e37",
+      "first_seen": "2024-01-10 07:50:02",
+      "last_seen": "2024-01-10 07:50:11",
+      "duration": 9.3
+    },
+    "3_6": {
+      "vehicle_type": "car",
+      "color": "#171730",
+      "first_seen": "2024-01-10 07:50:03",
+      "last_seen": "2024-01-10 07:50:08",
+      "duration": 4.63
+    },
+    "3_7": {
+      "vehicle_type": "bus",
+      "color": "#404453",
+      "first_seen": "2024-01-10 07:50:03",
+      "last_seen": "2024-01-10 07:50:09",
+      "duration": 5.33
+    },
+    "3_8": {
+      "vehicle_type": "car",
+      "color": "#915565",
+      "first_seen": "2024-01-10 07:50:04",
+      "last_seen": "2024-01-10 07:50:15",
+      "duration": 10.53
+    },
+    "3_9": {
+      "vehicle_type": "car",
+      "color": "#3b485c",
+      "first_seen": "2024-01-10 07:50:05",
+      "last_seen": "2024-01-10 07:50:10",
+      "duration": 4.33
+    },
+    "3_10": {
+      "vehicle_type": "car",
+      "color": "#301b2b",
+      "first_seen": "2024-01-10 07:50:06",
+      "last_seen": "2024-01-10 07:50:11",
+      "duration": 4.73
+    },
+    "3_11": {
+      "vehicle_type": "car",
+      "color": "#33384a",
+      "first_seen": "2024-01-10 07:50:09",
+      "last_seen": "2024-01-10 07:50:14",
+      "duration": 5.03
+    },
+    "3_12": {
+      "vehicle_type": "car",
+      "color": "#1e2334",
+      "first_seen": "2024-01-10 07:50:12",
+      "last_seen": "2024-01-10 07:50:18",
+      "duration": 6.33
+    },
+    "3_13": {
+      "vehicle_type": "car",
+      "color": "#272c48",
+      "first_seen": "2024-01-10 07:50:12",
+      "last_seen": "2024-01-10 07:50:19",
+      "duration": 7.13
+    },
+    "3_14": {
+      "vehicle_type": "car",
+      "color": "#1c2031",
+      "first_seen": "2024-01-10 07:50:13",
+      "last_seen": "2024-01-10 07:50:19",
+      "duration": 6.73
+    },
+    "3_15": {
+      "vehicle_type": "car",
+      "color": "#131a30",
+      "first_seen": "2024-01-10 07:50:16",
+      "last_seen": "2024-01-10 07:50:19",
+      "duration": 3.43
+    },
+    "3_17": {
+      "vehicle_type": "truck",
+      "color": "#0d1120",
+      "first_seen": "2024-01-10 07:50:19",
+      "last_seen": "2024-01-10 07:50:19",
+      "duration": 0.23
+    },
+    "4_1": {
+      "vehicle_type": "car",
+      "color": "#303938",
+      "first_seen": "2024-01-10 08:01:06",
+      "last_seen": "2024-01-10 08:01:14",
+      "duration": 7.5
+    },
+    "4_2": {
+      "vehicle_type": "car",
+      "color": "#142045",
+      "first_seen": "2024-01-10 08:01:06",
+      "last_seen": "2024-01-10 08:01:10",
+      "duration": 3.7
+    },
+    "4_3": {
+      "vehicle_type": "car",
+      "color": "#222730",
+      "first_seen": "2024-01-10 08:01:06",
+      "last_seen": "2024-01-10 08:01:07",
+      "duration": 1.0
+    },
+    "4_4": {
+      "vehicle_type": "car",
+      "color": "#2c1716",
+      "first_seen": "2024-01-10 08:01:06",
+      "last_seen": "2024-01-10 08:01:10",
+      "duration": 3.6
+    },
+    "4_5": {
+      "vehicle_type": "truck",
+      "color": "#3b7d2c",
+      "first_seen": "2024-01-10 08:01:07",
+      "last_seen": "2024-01-10 08:01:17",
+      "duration": 9.23
+    },
+    "4_6": {
+      "vehicle_type": "car",
+      "color": "#424e60",
+      "first_seen": "2024-01-10 08:01:08",
+      "last_seen": "2024-01-10 08:01:21",
+      "duration": 13.23
+    },
+    "4_7": {
+      "vehicle_type": "car",
+      "color": "#1d2527",
+      "first_seen": "2024-01-10 08:01:10",
+      "last_seen": "2024-01-10 08:01:13",
+      "duration": 2.83
+    },
+    "4_8": {
+      "vehicle_type": "car",
+      "color": "#0a141f",
+      "first_seen": "2024-01-10 08:01:12",
+      "last_seen": "2024-01-10 08:01:13",
+      "duration": 1.33
+    },
+    "4_9": {
+      "vehicle_type": "car",
+      "color": "#3b464c",
+      "first_seen": "2024-01-10 08:01:12",
+      "last_seen": "2024-01-10 08:01:18",
+      "duration": 5.73
+    },
+    "4_11": {
+      "vehicle_type": "car",
+      "color": "#1d2629",
+      "first_seen": "2024-01-10 08:01:14",
+      "last_seen": "2024-01-10 08:01:19",
+      "duration": 5.43
+    },
+    "4_12": {
+      "vehicle_type": "car",
+      "color": "#36171e",
+      "first_seen": "2024-01-10 08:01:14",
+      "last_seen": "2024-01-10 08:01:15",
+      "duration": 0.93
+    },
+    "4_13": {
+      "vehicle_type": "car",
+      "color": "#101a21",
+      "first_seen": "2024-01-10 08:01:16",
+      "last_seen": "2024-01-10 08:01:18",
+      "duration": 1.47
+    },
+    "4_14": {
+      "vehicle_type": "car",
+      "color": "#1c2121",
+      "first_seen": "2024-01-10 08:01:17",
+      "last_seen": "2024-01-10 08:01:19",
+      "duration": 1.33
+    },
+    "4_15": {
+      "vehicle_type": "car",
+      "color": "#262a30",
+      "first_seen": "2024-01-10 08:01:21",
+      "last_seen": "2024-01-10 08:01:23",
+      "duration": 1.7
+    },
+    "4_16": {
+      "vehicle_type": "car",
+      "color": "#1d2430",
+      "first_seen": "2024-01-10 08:01:23",
+      "last_seen": "2024-01-10 08:01:23",
+      "duration": 0.2
+    }
+  }
+}

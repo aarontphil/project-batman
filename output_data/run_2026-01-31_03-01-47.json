@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "generated_at": "2026-01-31T03:01:47.815197",
+    "total_vehicles": 3
+  },
+  "vehicles": {
+    "1": {
+      "vehicle_type": "car",
+      "color": "#46535a",
+      "first_seen": "13:45:08",
+      "last_seen": "13:45:08",
+      "duration": 0.08
+    },
+    "2": {
+      "vehicle_type": "car",
+      "color": "#5d6a6f",
+      "first_seen": "13:45:18",
+      "last_seen": "13:45:18",
+      "duration": 0.0
+    },
+    "6": {
+      "vehicle_type": "car",
+      "color": "#5f1523",
+      "first_seen": "13:45:19",
+      "last_seen": "13:45:19",
+      "duration": 0.0
+    }
+  }
+}
