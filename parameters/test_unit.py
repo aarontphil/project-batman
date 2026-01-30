@@ -1,6 +1,13 @@
+import sys
+import os
+import unittest
+
+# Allow running this script directly from parameters/ directory
+if __name__ == "__main__":
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import cv2
 import numpy as np
-import unittest
 from parameters.vehicle_size import extract_vehicle_size
 from parameters.vehicle_color import extract_vehicle_color
 from parameters.plate_text import detect_plate_text

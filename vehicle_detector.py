@@ -37,53 +37,8 @@ def load_model(model_name: str = "yolov8n.pt") -> YOLO:
     return model
 
 
-<<<<<<< HEAD
 from parameters import extract_vehicle_size, extract_vehicle_color, detect_plate_text, find_matches
 from search_ui import launch_ui 
-=======
-def detect_hex_color(crop_img) -> str:
-    h, w = crop_img.shape[:2]
-    start_x = int(w * 0.25)
-    end_x = int(w * 0.75)
-    start_y = int(h * 0.25)
-    end_y = int(h * 0.75)
-    center_crop = crop_img[start_y:end_y, start_x:end_x]
-    
-    if center_crop.size == 0:
-        center_crop = crop_img
-
-    resized = cv2.resize(center_crop, (50, 50))
-    pixels = np.float32(resized.reshape(-1, 3))
-
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    K = 4
-    _, labels, centers = cv2.kmeans(pixels, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
-
-    centers = np.uint8(centers)
-
-    centers_hsv = cv2.cvtColor(np.array([centers]), cv2.COLOR_BGR2HSV)[0]
-    
-    valid_indices = []
-    for i, (h, s, v) in enumerate(centers_hsv):
-        if v < 30: continue
-        if s < 20: continue
-        
-        valid_indices.append(i)
-    
-    if valid_indices:
-        best_idx = max(valid_indices, key=lambda i: centers_hsv[i][1])
-        dominant_bgr = centers[best_idx]
-    else:
-        counts = np.bincount(labels.flatten())
-        most_frequent_idx = np.argmax(counts)
-        dominant_bgr = centers[most_frequent_idx]
-
-    b, g, r = dominant_bgr
-    hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
-            
-    return hex_color
-
->>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
 
 def save_metadata_to_json(vehicle_events, output_dir="output_data"):
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -358,7 +313,6 @@ def process_video(
                             'aspect_ratio': aspect_ratio,
                             'first_seen': current_time_str,
                             'last_seen': current_time_str,
-<<<<<<< HEAD
                             'first_seen_seconds': elapsed_seconds, # relative for specific video duration
                             'last_seen_seconds': elapsed_seconds,
                             'source_video': str(input_path)
@@ -379,14 +333,6 @@ def process_video(
                         new_plate = plate_data_obj.get('plate_text', '')
                         if len(new_plate) > len(vehicle_events[unique_tid].get('plate_text', '')):
                             vehicle_events[unique_tid]['plate_text'] = new_plate
-=======
-                            'first_seen_seconds': float_timestamp,
-                            'last_seen_seconds': float_timestamp
-                        }
-                    else:
-                        vehicle_events[unique_tid]['last_seen'] = current_time_str
-                        vehicle_events[unique_tid]['last_seen_seconds'] = float_timestamp
->>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
             
             annotated_frame = draw_detections(frame, confirmed_detections)
             
@@ -510,7 +456,6 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
     
     print("="*90)
     
-<<<<<<< HEAD
     # Matching Analysis
     print("\n" + "="*20 + " GLOBAL MATCHING REPORT " + "="*20)
     clusters = find_matches(global_vehicle_events)
@@ -530,9 +475,6 @@ def process_video_sequence(folder_path: str, model_name: str, confidence_thresho
     with open(db_path, "w") as f:
         json.dump(global_vehicle_events, f, indent=4)
     print(f"Vehicle Database saved to {db_path}")
-=======
-    save_metadata_to_json(global_vehicle_events)
->>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
 
 
 def main():
@@ -588,8 +530,6 @@ def main():
     )
     
     args = parser.parse_args()
-<<<<<<< HEAD
-    
     if args.ui:
         print("Launching User Interface...")
         launch_ui()
@@ -600,8 +540,6 @@ def main():
         return
 
     # Check if input is directory
-=======
->>>>>>> 87d24d35a59b26f25e6b7975d9868a3b960d3484
     input_path = Path(args.input)
     
     if input_path.is_dir():
