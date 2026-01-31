@@ -82,6 +82,9 @@ class VehicleSearchApp:
         ttk.Button(ctrl_frame, text="Play Selected", command=self.play_selected).pack(side="left", padx=5)
         ttk.Button(ctrl_frame, text="Play All Sequentially", command=self.play_all_sequentially).pack(side="left", padx=5)
         
+        # Routemap Button (Right Bottom)
+        ttk.Button(ctrl_frame, text="Generate Routemap", command=self.generate_routemap).pack(side="right", padx=5)
+        
         self.status_var = tk.StringVar()
         self.status_var.set("Ready")
         ttk.Label(ctrl_frame, textvariable=self.status_var).pack(side="right", padx=5)
@@ -266,6 +269,95 @@ class VehicleSearchApp:
             self.status_var.set("Sequence finished.")
             
         threading.Thread(target=run_sequence).start()
+
+    def generate_routemap(self):
+        if not self.matches:
+            messagebox.showinfo("Info", "No matches found to generate map.")
+            return
+
+        try:
+            from PIL import Image, ImageTk
+        except ImportError:
+            messagebox.showerror("Error", "Pillow (PIL) library not found. Please install it: pip install Pillow")
+            return
+
+        # Create New Window
+        map_window = tk.Toplevel(self.root)
+        map_window.title(f"Route Map ({len(self.matches)} points)")
+        map_window.geometry("1000x400")
+        
+        # Scrollable Frame
+        canvas = tk.Canvas(map_window)
+        scrollbar = ttk.Scrollbar(map_window, orient="horizontal", command=canvas.xview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(xscrollcommand=scrollbar.set)
+
+        canvas.pack(side="top", fill="both", expand=True)
+        scrollbar.pack(side="bottom", fill="x")
+
+        # Populate Images
+        image_refs = [] # Keep references to avoid GC
+        
+        for i, event in enumerate(self.matches):
+            source = event.get('source_video', '')
+            if not os.path.exists(source): continue
+            
+            # Extract Frame
+            cap = cv2.VideoCapture(source)
+            # Use middle of the clip or first seen? First seen is better for 'start' of sighting.
+            # But converting seconds to frame index.
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps <= 0: fps = 30
+            
+            timestamp = event.get('first_seen_seconds', 0)
+            frame_idx = int(timestamp * fps)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+            ret, frame = cap.read()
+            cap.release()
+            
+            if ret:
+                # Convert BGR to RGB
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
+                # Resize for thumbnail (e.g. height 200, keep aspect)
+                h, w, _ = rgb_frame.shape
+                target_h = 250
+                aspect = w / h
+                target_w = int(target_h * aspect)
+                
+                img_pil = Image.fromarray(rgb_frame)
+                img_pil = img_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                
+                img_tk = ImageTk.PhotoImage(img_pil)
+                image_refs.append(img_tk) # Hold reference
+                
+                # Container for this Step
+                step_frame = ttk.Frame(scrollable_frame, padding="10")
+                step_frame.pack(side="left", padx=5)
+                
+                # Image Label
+                lbl_img = ttk.Label(step_frame, image=img_tk)
+                lbl_img.pack()
+                
+                # Info Label
+                time_str = event.get('first_seen', 'N/A').split(' ')[-1] # Just time part
+                lbl_info = ttk.Label(step_frame, text=f"{time_str}\n{event.get('vehicle_type','')}", justify="center")
+                lbl_info.pack(pady=5)
+                
+                # Arrow (if not last)
+                if i < len(self.matches) - 1:
+                    lbl_arrow = ttk.Label(scrollable_frame, text="➜", font=("Arial", 20))
+                    lbl_arrow.pack(side="left", padx=5)
+
+        # Store refs in window to prevent GC
+        map_window.image_refs = image_refs
 
 def launch_ui():
     root = tk.Tk()
