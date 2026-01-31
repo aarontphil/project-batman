@@ -13,7 +13,7 @@ class VehicleSearchApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Vehicle Search & Playback")
-        self.root.geometry("800x600")
+        self.root.geometry("1000x700")
         
         self.db_path = "vehicle_db.json"
         self.data = {}
@@ -23,9 +23,97 @@ class VehicleSearchApp:
         # Load Data
         self.load_database()
         
+        # Apply Theme
+        self.apply_theme()
+        
         # UI Components
         self.create_widgets()
         
+    def apply_theme(self):
+        style = ttk.Style()
+        style.theme_use('clam') 
+        
+        # Government / Terminal Palette
+        bg_root = "#121212"      # Deep Charcoal
+        fg_text = "#00FF41"      # Terminal Neon Green
+        fg_accent = "#FFB000"    # Amber for specific highlights
+        
+        self.root.configure(bg=bg_root)
+        
+        # General Defaults
+        style.configure(".", 
+            background=bg_root, 
+            foreground=fg_text, 
+            fieldbackground=bg_root,
+            font=("Consolas", 10),
+            borderwidth=1
+        )
+        
+        # Labelframes
+        style.configure("TLabelframe", 
+            background=bg_root, 
+            foreground=fg_text,
+            bordercolor=fg_text,
+            borderwidth=2
+        )
+        style.configure("TLabelframe.Label", 
+            background=bg_root, 
+            foreground=fg_text,
+            font=("Consolas", 10, "bold")
+        )
+        
+        # Buttons (Hard Edges)
+        style.configure("TButton", 
+            background="#222222", 
+            foreground=fg_text, 
+            borderwidth=1,
+            focusthickness=2,
+            focuscolor=fg_text,
+            font=("Consolas", 10, "bold")
+        )
+        style.map("TButton", 
+            background=[("active", "#333333"), ("pressed", "#444444")],
+            foreground=[("active", fg_text)]
+        )
+        
+        # Entries
+        style.configure("TEntry", 
+            fieldbackground="#000000", 
+            foreground=fg_text,
+            insertcolor=fg_text,
+            borderwidth=1,
+            relief="solid"
+        )
+        
+        # Treeview
+        style.configure("Treeview", 
+            background="black",
+            fieldbackground="black",
+            foreground=fg_text,
+            font=("Consolas", 9),
+            rowheight=25,
+            borderwidth=0
+        )
+        style.configure("Treeview.Heading", 
+            background="#222222", 
+            foreground=fg_text, 
+            font=("Consolas", 10, "bold"),
+            relief="raised"
+        )
+        style.map("Treeview", 
+            background=[("selected", "#003300")], 
+            foreground=[("selected", fg_text)]
+        )
+        
+        # Scrollbars
+        style.configure("Vertical.TScrollbar", 
+            background="#222222",
+            troughcolor=bg_root,
+            arrowcolor=fg_text,
+            borderwidth=1,
+            relief="flat"
+        )
+
     def load_database(self):
         if os.path.exists(self.db_path):
             with open(self.db_path, "r") as f:
@@ -35,7 +123,7 @@ class VehicleSearchApp:
 
     def create_widgets(self):
         # Input Frame
-        input_frame = ttk.LabelFrame(self.root, text="Search Criteria", padding="10")
+        input_frame = ttk.LabelFrame(self.root, text="Target Parameters [SEARCH]", padding="10")
         input_frame.pack(fill="x", padx=10, pady=5)
         
         ttk.Label(input_frame, text="Color:").grid(row=0, column=0, padx=5)
@@ -88,6 +176,9 @@ class VehicleSearchApp:
         
         # Visual Search Button (Right Bottom)
         ttk.Button(ctrl_frame, text="Search by Image", command=self.browse_image).pack(side="right", padx=5)
+
+        # Case File Button (Right Bottom)
+        ttk.Button(ctrl_frame, text="Generate Case File 📄", command=self.generate_report).pack(side="right", padx=5)
         
         self.status_var = tk.StringVar()
         self.status_var.set("Ready")
@@ -273,6 +364,38 @@ class VehicleSearchApp:
             self.status_var.set("Sequence finished.")
             
         threading.Thread(target=run_sequence).start()
+
+    def generate_report(self):
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showinfo("Info", "Select a vehicle to generate a report.")
+            return
+            
+        index = self.tree.index(selected_item[0])
+        event = self.matches[index]
+        
+        try:
+            from case_file import generate_case_report
+            
+            self.status_var.set("Generating PDF Case File...")
+            
+            output_name = f"CaseFile_{event['vehicle_id']}.pdf"
+            success = generate_case_report(event, output_name)
+            
+            if success:
+                self.status_var.set(f"Report Generated: {output_name}")
+                try:
+                    os.startfile(output_name)
+                except:
+                    messagebox.showinfo("Success", f"Report saved as {output_name}")
+            else:
+                 self.status_var.set("Report generation failed.")
+                 messagebox.showerror("Error", "Could not generate report.")
+                 
+        except Exception as e:
+            print(e)
+            self.status_var.set(f"Error: {e}")
+            messagebox.showerror("Error", f"Report Error: {e}")
 
     def browse_image(self):
         file_path = filedialog.askopenfilename(
