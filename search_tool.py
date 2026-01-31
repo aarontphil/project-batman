@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
 # Visual Search Extensions
 from parameters.vehicle_size import extract_vehicle_size
-from parameters.vehicle_color import extract_vehicle_color
+from parameters.vehicle_color import extract_vehicle_color, extract_color_smart
 from parameters.matching import calculate_similarity
 from ultralytics import YOLO
 
@@ -219,8 +219,8 @@ def analyze_image(image_path):
         best_cls = 2 # Assume car if unknown
         
     # Extract Features
-    # 1. Color
-    color_data = extract_vehicle_color(img, best_box)
+    # 1. Color (Use Smart Logic for Uploaded Images)
+    color_data = extract_color_smart(img, best_box)
     
     # 2. Size
     size_data = extract_vehicle_size(best_box, img.shape)

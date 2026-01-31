@@ -149,3 +149,109 @@ def extract_vehicle_color(frame, bbox) -> dict:
     except Exception as e:
         # Fallback in case of cv2 errors
         return {"dominant_color": "error", "confidence": 0.0, "error": str(e)}
+
+def extract_color_smart(frame, bbox) -> dict:
+    """
+    Smart color extraction for STATIC UPLOADED IMAGES.
+    - Uses strict cropping (removes road/glare).
+    - Uses strict pixel filtering (removes background/shadows).
+    - Falls back to `extract_vehicle_color` if filtering is too aggressive.
+    """
+    # 1. Base Crop
+    vehicle_roi = crop_bbox(frame, bbox)
+    if vehicle_roi is None or vehicle_roi.size == 0:
+        return extract_vehicle_color(frame, bbox)
+
+    h, w = vehicle_roi.shape[:2]
+    
+    # 2. Region-Aware Cropping
+    # Remove top 10% (glare), bottom 20% (wheels/road), sides 5% (bg)
+    y1 = int(h * 0.10)
+    y2 = int(h * 0.80)
+    x1 = int(w * 0.05)
+    x2 = int(w * 0.95)
+    
+    smart_roi = vehicle_roi[y1:y2, x1:x2]
+    
+    if smart_roi.size == 0:
+        return extract_vehicle_color(frame, bbox)
+
+    # 3. Pixel Filtering
+    # Convert to HSV
+    hsv_roi = cv2.cvtColor(smart_roi, cv2.COLOR_BGR2HSV)
+    
+    # Reshape for masking
+    pixels_hsv = hsv_roi.reshape(-1, 3)
+    pixels_bgr = smart_roi.reshape(-1, 3)
+    
+    # Create Mask
+    # Condition 1: Saturation < 50 (Road/Shadows/Grey-noise)
+    mask_sat = pixels_hsv[:, 1] < 50
+    
+    # Condition 2: Value < 40 (Dark shadows/Tires)
+    mask_val = pixels_hsv[:, 2] < 40
+    
+    # Condition 3: Sat < 30 AND Val > 200 (White Glare/Sky)
+    # Note: This risks removing white cars, but we have fallback.
+    mask_white = (pixels_hsv[:, 1] < 30) & (pixels_hsv[:, 2] > 200)
+    
+    # Combine masks: We want to KEEP pixels that do NOT match these
+    noise_mask = mask_sat | mask_val | mask_white
+    valid_mask = ~noise_mask
+    
+    valid_pixels = pixels_bgr[valid_mask]
+    
+    # 4. Fallback Check
+    # If we filtered out almost everything (e.g., < 100 pixels or < 5% of area),
+    # it might be a white/black car that we aggressively filtered.
+    min_pixels = 100
+    if len(valid_pixels) < min_pixels:
+        print(f"[SmartColor] Filter too aggressive ({len(valid_pixels)} px). Falling back.")
+        return extract_vehicle_color(frame, bbox)
+        
+    # 5. Clustering on Valid Pixels
+    # Resize isn't needed if we work on pixel list directly, 
+    # but valid_pixels might be large, so let's cap it? 
+    # Actually, K-Means on a few thousand pixels is fast.
+    
+    pixels = np.float32(valid_pixels)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    K = 3
+    
+    try:
+        # Check if we have enough points for K
+        if len(pixels) < K:
+             return extract_vehicle_color(frame, bbox)
+             
+        _, labels, centers = cv2.kmeans(pixels, K, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        
+        # Count labels to find dominant cluster
+        unique, counts = np.unique(labels, return_counts=True)
+        dominant_idx = unique[np.argmax(counts)]
+        dominant_center = centers[dominant_idx]
+        
+        # Convert to int BGR
+        b, g, r = int(dominant_center[0]), int(dominant_center[1]), int(dominant_center[2])
+        dominant_rgb = (r, g, b)
+        
+        # Get Label
+        color_name, confidence = get_closest_color_label(dominant_rgb)
+        
+        # Hex
+        hex_val = "#{:02x}{:02x}{:02x}".format(r, g, b)
+        
+        # Dummy Hist (since we filtered pixels, the spatial hist is hard to define exactly, 
+        # let's just use the smart_roi hist for compatibility)
+        hist = get_color_histogram(smart_roi)
+        
+        return {
+            "dominant_color": color_name,
+            "hex_value": hex_val,
+            "confidence": confidence,
+            "rgb_value": [r, g, b],
+            "color_histogram": hist
+        }
+        
+    except Exception as e:
+        print(f"[SmartColor] Error: {e}")
+        return extract_vehicle_color(frame, bbox)

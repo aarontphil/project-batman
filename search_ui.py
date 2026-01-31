@@ -8,6 +8,31 @@ import threading
 from datetime import datetime
 from tkinter import filedialog
 from search_tool import extract_snippet, string_similarity, analyze_image, search_by_visuals
+import random
+import string
+
+class GlitchLabel(tk.Label):
+    def __init__(self, master, text="", **kwargs):
+        super().__init__(master, text=text, **kwargs)
+        self.final_text = text
+        self.current_text = ""
+        self.counter = 0
+        self.glitch_loop()
+
+    def set_text(self, text):
+        self.final_text = text
+        self.counter = 0
+        self.glitch_loop()
+
+    def glitch_loop(self):
+        if self.counter < 10:
+            # Generate random string of same length
+            txt = "".join(random.choices(string.ascii_uppercase + string.digits + "#$%", k=len(self.final_text)))
+            self.configure(text=txt)
+            self.counter += 1
+            self.after(50, self.glitch_loop)
+        else:
+            self.configure(text=self.final_text)
 
 class VehicleSearchApp:
     def __init__(self, root):
@@ -33,10 +58,12 @@ class VehicleSearchApp:
         style = ttk.Style()
         style.theme_use('clam') 
         
-        # Government / Terminal Palette
-        bg_root = "#121212"      # Deep Charcoal
-        fg_text = "#00FF41"      # Terminal Neon Green
-        fg_accent = "#FFB000"    # Amber for specific highlights
+        # Retro Sci-Fi / Cyberpunk Blue Palette
+        bg_root = "#050a14"      # Deep Space Blue/Black
+        fg_text = "#00f3ff"      # Neon Cyan
+        fg_accent = "#ff0055"    # Cyberpunk Pink/Red (for alerts)
+        bg_panel = "#0a1428"     # Slightly lighter blue-black
+        border_color = "#003366" # DARK BLUE BORDER (User Request)
         
         self.root.configure(bg=bg_root)
         
@@ -53,27 +80,32 @@ class VehicleSearchApp:
         style.configure("TLabelframe", 
             background=bg_root, 
             foreground=fg_text,
-            bordercolor=fg_text,
-            borderwidth=2
+            bordercolor=border_color,
+            lightcolor=border_color,
+            darkcolor=border_color,
+            borderwidth=2,
+            relief="solid"
         )
         style.configure("TLabelframe.Label", 
             background=bg_root, 
             foreground=fg_text,
-            font=("Consolas", 10, "bold")
+            font=("Consolas", 11, "bold")
         )
         
-        # Buttons (Hard Edges)
+        # Buttons
         style.configure("TButton", 
-            background="#222222", 
+            background="#0a1428", 
             foreground=fg_text, 
+            bordercolor=border_color,
             borderwidth=1,
             focusthickness=2,
             focuscolor=fg_text,
             font=("Consolas", 10, "bold")
         )
         style.map("TButton", 
-            background=[("active", "#333333"), ("pressed", "#444444")],
-            foreground=[("active", fg_text)]
+            background=[("active", "#00f3ff"), ("pressed", "#ffffff")],
+            foreground=[("active", "#000000")],
+            bordercolor=[("active", border_color)]
         )
         
         # Entries
@@ -81,33 +113,38 @@ class VehicleSearchApp:
             fieldbackground="#000000", 
             foreground=fg_text,
             insertcolor=fg_text,
+            bordercolor=border_color,
+            lightcolor=border_color,
+            darkcolor=border_color,
             borderwidth=1,
             relief="solid"
         )
         
         # Treeview
         style.configure("Treeview", 
-            background="black",
-            fieldbackground="black",
+            background="#000000",
+            fieldbackground="#000000",
             foreground=fg_text,
             font=("Consolas", 9),
             rowheight=25,
-            borderwidth=0
+            borderwidth=1,
+            relief="solid",
+            bordercolor=border_color
         )
         style.configure("Treeview.Heading", 
-            background="#222222", 
+            background="#0a1428", 
             foreground=fg_text, 
             font=("Consolas", 10, "bold"),
             relief="raised"
         )
         style.map("Treeview", 
-            background=[("selected", "#003300")], 
+            background=[("selected", "#003344")], 
             foreground=[("selected", fg_text)]
         )
         
         # Scrollbars
         style.configure("Vertical.TScrollbar", 
-            background="#222222",
+            background="#0a1428",
             troughcolor=bg_root,
             arrowcolor=fg_text,
             borderwidth=1,
@@ -126,30 +163,69 @@ class VehicleSearchApp:
         input_frame = ttk.LabelFrame(self.root, text="Target Parameters [SEARCH]", padding="10")
         input_frame.pack(fill="x", padx=10, pady=5)
         
-        ttk.Label(input_frame, text="Color:").grid(row=0, column=0, padx=5)
-        self.entry_color = ttk.Entry(input_frame)
-        self.entry_color.grid(row=0, column=1, padx=5)
-        
-        ttk.Label(input_frame, text="Type:").grid(row=0, column=2, padx=5)
-        self.entry_type = ttk.Entry(input_frame)
-        self.entry_type.grid(row=0, column=3, padx=5)
-        
-        ttk.Label(input_frame, text="Plate:").grid(row=0, column=4, padx=5)
-        self.entry_plate = ttk.Entry(input_frame)
-        self.entry_plate.grid(row=0, column=5, padx=5)
+        # Inner container for centering
+        center_frame = ttk.Frame(input_frame)
+        center_frame.pack(expand=True, fill="none")
 
-        ttk.Label(input_frame, text="Time (HH:MM):").grid(row=0, column=6, padx=5)
-        self.entry_time = ttk.Entry(input_frame, width=10)
-        self.entry_time.grid(row=0, column=7, padx=5)
+        ttk.Label(center_frame, text="Color:").grid(row=0, column=0, padx=2)
+        self.entry_color = ttk.Entry(center_frame, width=10)
+        self.entry_color.grid(row=0, column=1, padx=2)
         
-        ttk.Button(input_frame, text="Search", command=self.perform_search).grid(row=0, column=8, padx=10)
+        ttk.Label(center_frame, text="Type:").grid(row=0, column=2, padx=2)
+        self.entry_type = ttk.Entry(center_frame, width=10)
+        self.entry_type.grid(row=0, column=3, padx=2)
         
-        # Results List
-        list_frame = ttk.LabelFrame(self.root, text="Search Results", padding="10")
-        list_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        ttk.Label(center_frame, text="Plate:").grid(row=0, column=4, padx=2)
+        self.entry_plate = ttk.Entry(center_frame, width=8)
+        self.entry_plate.grid(row=0, column=5, padx=2)
+
+        ttk.Label(center_frame, text="Date:").grid(row=0, column=6, padx=2)
+        self.entry_date = ttk.Entry(center_frame, width=10)
+        self.entry_date.grid(row=0, column=7, padx=2)
+
+        ttk.Label(center_frame, text="Time:").grid(row=0, column=8, padx=2)
+        self.entry_time = ttk.Entry(center_frame, width=8)
+        self.entry_time.grid(row=0, column=9, padx=2)
+        
+        ttk.Button(center_frame, text="SEARCH", command=self.perform_search).grid(row=0, column=10, padx=5)
+        
+        # Main Layout Container
+        main_container = tk.Frame(self.root, bg="#050a14")
+        main_container.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        # System Log (Left)
+        log_frame = ttk.LabelFrame(main_container, text="SYS_LOG", width=200)
+        log_frame.pack(side="left", fill="y", padx=(0, 5))
+        
+        self.log_text = tk.Text(log_frame, width=25, bg="#000000", fg="#1a75ff", font=("Consolas", 8), borderwidth=0)
+        self.log_text.pack(fill="both", expand=True)
+        
+        # ASCII Detective
+        detective_art = r"""
+      ,_,
+     /_ _\
+    | o o |
+    |  ^  |
+     \_-_/
+    __| |__
+   /  |_|  \
+  /_________\
+  |_|_| |_|_|
+"""
+        self.log_text.insert("1.0", detective_art + "\nINITIALIZING...\n")
+        self.start_system_noise()
+
+        # Results List (Right)
+        list_frame = ttk.LabelFrame(main_container, text="TARGET_LIST", padding="10")
+        list_frame.pack(side="right", fill="both", expand=True)
         
         columns = ("ID", "Type", "Color", "Time", "Duration", "Source")
+        columns = ("ID", "Type", "Color", "Time", "Duration", "Source")
         self.tree = ttk.Treeview(list_frame, columns=columns, show="headings")
+        
+        # Scanline Tag
+        self.tree.tag_configure("odd", background="#0a0f1e")
+        self.tree.tag_configure("even", background="#000000")
         
         for col in columns:
             self.tree.heading(col, text=col)
@@ -190,6 +266,7 @@ class VehicleSearchApp:
         q_color = self.entry_color.get().strip()
         q_type = self.entry_type.get().strip()
         q_plate = self.entry_plate.get().strip()
+        q_date = self.entry_date.get().strip()
         q_time = self.entry_time.get().strip()
         
         target_minutes = None
@@ -217,6 +294,19 @@ class VehicleSearchApp:
             if q_plate:
                 if q_plate.upper() not in event.get('plate_text', ''):
                     match = False
+
+            if q_date:
+                # Filter by file date
+                source = event.get('source_video', '')
+                if source:
+                    filename = os.path.basename(source)
+                    # Expected: YYYY-MM-DD_HH-MM-SS.mp4
+                    # Extract YYYY-MM-DD
+                    file_date = filename.split('_')[0]
+                    if file_date != q_date:
+                        match = False
+                else:
+                    match = False # No source means no date check possible -> exclude? Or include? Exclude safer.
             
             if q_time and match:
                 # Time Start-From Logic
@@ -276,6 +366,9 @@ class VehicleSearchApp:
         # Sort sequentially by timestamp (assuming first_seen is Sortable string YYYY-MM-DD...)
         self.matches.sort(key=lambda x: x.get('first_seen', ''))
         
+        self.populate_results_tree()
+
+    def populate_results_tree(self):
         # Update UI
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -283,6 +376,8 @@ class VehicleSearchApp:
         for m in self.matches:
             duration = f"{m.get('last_seen_seconds', 0) - m.get('first_seen_seconds', 0):.1f}s"
             source = os.path.basename(m.get('source_video', 'Unknown'))
+            idx = len(self.tree.get_children())
+            tag = "odd" if idx % 2 else "even"
             self.tree.insert("", "end", values=(
                 m['vehicle_id'], 
                 m['vehicle_type'], 
@@ -290,7 +385,7 @@ class VehicleSearchApp:
                 m['first_seen'], 
                 duration,
                 source
-            ))
+            ), tags=(tag,))
             
         self.status_var.set(f"Found {len(self.matches)} matches.")
 
@@ -452,6 +547,25 @@ class VehicleSearchApp:
 
         threading.Thread(target=run_analysis).start()
 
+    def start_system_noise(self):
+        def loop():
+            if not self.root: return
+            try:
+                # Generate random hex garbage
+                line = "".join(random.choices("0123456789ABCDEF", k=20))
+                self.log_text.insert("end", f"{line}\n")
+                if random.random() < 0.1:
+                    self.log_text.insert("end", "> MEM_ALLOC_OK\n")
+                self.log_text.see("end")
+                # Keep log size manageable
+                if float(self.log_text.index("end")) > 100:
+                   self.log_text.delete("1.0", "2.0")
+                   
+                self.root.after(100, loop)
+            except:
+                pass
+        loop()
+
     def generate_routemap(self):
         if not self.matches:
             messagebox.showinfo("Info", "No matches found to generate map.")
@@ -541,9 +655,85 @@ class VehicleSearchApp:
         # Store refs in window to prevent GC
         map_window.image_refs = image_refs
 
+class LandingPage(tk.Frame):
+    def __init__(self, master, on_ready, **kwargs):
+        super().__init__(master, **kwargs)
+        self.on_ready = on_ready
+        self.configure(bg="#000000")
+        self.pack(fill="both", expand=True)
+        
+        # Center Content
+        self.center_frame = tk.Frame(self, bg="#000000")
+        self.center_frame.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # ASCII Title
+        title_art = r"""
+ ██████╗██╗   ██╗██████╗ ██╗  ██╗███████╗██████╗ 
+██╔════╝╚██╗ ██╔╝██╔══██╗██║  ██║██╔════╝██╔══██╗
+██║      ╚████╔╝ ██████╔╝███████║█████╗  ██████╔╝
+██║       ╚██╔╝  ██╔═══╝ ██╔══██║██╔══╝  ██╔══██╗
+╚██████╗   ██║   ██║     ██║  ██║███████╗██║  ██║
+ ╚═════╝   ╚═╝   ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+"""
+        self.title_lbl = tk.Label(self.center_frame, text=title_art, font=("Consolas", 10), bg="#000000", fg="#00f3ff", justify="left")
+        self.title_lbl.pack(pady=20)
+        
+        # Subtitle
+        self.sub_lbl = GlitchLabel(self.center_frame, text="RESTRICTED ACCESS // LEVEL 9", font=("Consolas", 12), bg="#000000", fg="#ff0055")
+        self.sub_lbl.pack(pady=10)
+        
+        # Initialize Button
+        self.btn_init = tk.Button(self.center_frame, text="[ INITIALIZE SYSTEM ]", 
+                                  font=("Consolas", 14, "bold"), 
+                                  bg="#000000", fg="#00f3ff", 
+                                  activebackground="#00f3ff", activeforeground="#000000",
+                                  relief="flat", cursor="hand2",
+                                  command=self.start_system)
+        self.btn_init.pack(pady=40, ipadx=20, ipady=10)
+        
+        # Footer
+        tk.Label(self.center_frame, text="CYPHER SURVEILLANCE NETWORK", font=("Consolas", 8), bg="#000000", fg="#333333").pack(side="bottom", pady=20)
+
+    def start_system(self):
+        # Trigger disintegration
+        self.btn_init.config(state="disabled")
+        self.sub_lbl.set_text("DECRYPTING...")
+        self.disintegrate_loop(0)
+
+    def disintegrate_loop(self, step):
+        current_text = self.title_lbl.cget("text")
+        if step > 20: 
+            self.finish()
+            return
+
+        # Replace random chars with space or glitch
+        new_text = list(current_text)
+        for i in range(len(new_text)):
+             # Don't touch newlines
+             if new_text[i] != "\n":
+                 if random.random() < 0.15: # 15% chance per frame to degrade a char
+                     new_text[i] = " " if random.random() < 0.6 else random.choice(".:*")
+        
+        self.title_lbl.config(text="".join(new_text))
+        # Accelerate slightly
+        self.after(50, lambda: self.disintegrate_loop(step + 1))
+        
+    def finish(self):
+        self.destroy()
+        self.on_ready()
+
 def launch_ui():
     root = tk.Tk()
-    app = VehicleSearchApp(root)
+    root.title("System Boot")
+    root.geometry("1000x700")
+    root.configure(bg="#000000")
+    
+    def start_app():
+        app = VehicleSearchApp(root)
+        
+    # Start with Landing Page
+    landing = LandingPage(root, on_ready=start_app)
+    
     root.mainloop()
 
 if __name__ == "__main__":
