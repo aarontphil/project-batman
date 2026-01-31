@@ -5,6 +5,7 @@ import os
 import cv2
 import tempfile
 import threading
+from datetime import datetime
 from search_tool import extract_snippet, string_similarity
 
 class VehicleSearchApp:
@@ -47,8 +48,12 @@ class VehicleSearchApp:
         ttk.Label(input_frame, text="Plate:").grid(row=0, column=4, padx=5)
         self.entry_plate = ttk.Entry(input_frame)
         self.entry_plate.grid(row=0, column=5, padx=5)
+
+        ttk.Label(input_frame, text="Time (HH:MM):").grid(row=0, column=6, padx=5)
+        self.entry_time = ttk.Entry(input_frame, width=10)
+        self.entry_time.grid(row=0, column=7, padx=5)
         
-        ttk.Button(input_frame, text="Search", command=self.perform_search).grid(row=0, column=6, padx=10)
+        ttk.Button(input_frame, text="Search", command=self.perform_search).grid(row=0, column=8, padx=10)
         
         # Results List
         list_frame = ttk.LabelFrame(self.root, text="Search Results", padding="10")
@@ -87,6 +92,16 @@ class VehicleSearchApp:
         q_color = self.entry_color.get().strip()
         q_type = self.entry_type.get().strip()
         q_plate = self.entry_plate.get().strip()
+        q_time = self.entry_time.get().strip()
+        
+        target_minutes = None
+        if q_time:
+            try:
+                t_obj = datetime.strptime(q_time, "%H:%M")
+                target_minutes = t_obj.hour * 60 + t_obj.minute
+            except ValueError:
+                messagebox.showerror("Error", "Invalid Time Format. Use HH:MM (24h)")
+                return
         
         for vid, event in self.data.items():
             match = True
@@ -104,6 +119,58 @@ class VehicleSearchApp:
             if q_plate:
                 if q_plate.upper() not in event.get('plate_text', ''):
                     match = False
+            
+            if q_time and match:
+                # Time Start-From Logic
+                # Filter out clips BEFORE (Target Time - 5 mins).
+                # Keep clips AFTER.
+                try:
+                    # first_seen format: "YYYY-MM-DD HH:MM:SS"
+                    fs_str = event.get('first_seen', '')
+                    if fs_str:
+                        dt = datetime.strptime(fs_str, "%Y-%m-%d %H:%M:%S")
+                        event_minutes = dt.hour * 60 + dt.minute
+                        
+                        # Threshold Minutes = Target - 5
+                        threshold_minutes = target_minutes - 5
+                        
+                        # Handle Linear Day Logic (0..1439)
+                        # If threshold wraps to previous day (e.g. 00:02 -> -3 -> 1437), strictly speaking, 
+                        # "everything after 23:57 yesterday" is ambiguous without date.
+                        # Assuming linear day 00:00 to 23:59.
+                        # If threshold < 0, we set it to 0 (start of day) or handle wrap?
+                        # User said "i only want the clips that exist BEFORE the time frame to be filetred out"
+                        # For simplicity in single-day context:
+                        # If event_minutes < threshold_minutes -> Filter Out
+                        
+                        effective_threshold = threshold_minutes
+                        if effective_threshold < 0:
+                             effective_threshold += 1440 # Wrap around logic? 
+                             # If threshold is 23:55 (yesterday), and event is 00:05 (today).
+                             # 00:05 (5) < 23:55 (1435).
+                             # This would filter out 00:05.
+                             # But 00:05 is "after" 23:55 if date advanced.
+                             # Without date, 00:05 is "start of day".
+                             # So standard comparison works fine if we assume user inputs 10:00 expecting 10:00+ events.
+                             
+                        # Let's stick to strict 0-1440 comparison for robust single-day behavior
+                        # If target is 10:05, threshold is 10:00 (600 mins).
+                        # Event 09:59 (599) < 600 -> Filtered.
+                        # Event 11:00 (660) >= 600 -> Kept.
+                        
+                        # Handling negative threshold (e.g. input 00:02 -> threshold -3)
+                        # If we treat day as circle, -3 is 23:57.
+                        # But event 00:05 (5) is "after" 23:57?
+                        # Or start of new day?
+                        # Let's simplify: strict inequality on minutes of day.
+                        # If 10:05 input. 
+                        # 09:00 filtered. 12:00 kept.
+                        
+                        if event_minutes < threshold_minutes:
+                            match = False
+                            
+                except Exception:
+                     pass 
                     
             if match:
                 self.matches.append(event)
