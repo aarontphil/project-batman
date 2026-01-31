@@ -160,3 +160,98 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Visual Search Extensions
+from parameters.vehicle_size import extract_vehicle_size
+from parameters.vehicle_color import extract_vehicle_color
+from parameters.matching import calculate_similarity
+from ultralytics import YOLO
+
+MODEL_PATH = "yolov8n.pt"
+_model_instance = None
+
+def get_model():
+    global _model_instance
+    if _model_instance is None:
+        _model_instance = YOLO(MODEL_PATH)
+    return _model_instance
+
+def analyze_image(image_path):
+    """
+    Analyzes an uploaded image to extract vehicle features.
+    Returns a 'Query Event' dict compatible with vehicle_db.json.
+    """
+    import logging
+    logging.getLogger("ultralytics").setLevel(logging.ERROR)
+
+    if not os.path.exists(image_path):
+        return None
+        
+    img = cv2.imread(image_path)
+    if img is None:
+        return None
+        
+    model = get_model()
+    # Run inference to find the main vehicle in the image
+    results = model(img, verbose=False)[0]
+    
+    best_box = None
+    max_area = 0
+    best_cls = None
+    
+    # Find largest vehicle in the image
+    vehicle_classes = [2, 3, 5, 7] # car, motorcycle, bus, truck
+    
+    if results.boxes:
+        for box, cls in zip(results.boxes.xyxy.cpu().numpy(), results.boxes.cls.cpu().numpy()):
+            if int(cls) in vehicle_classes:
+                x1, y1, x2, y2 = map(int, box)
+                area = (x2 - x1) * (y2 - y1)
+                if area > max_area:
+                    max_area = area
+                    best_box = [x1, y1, x2, y2]
+                    best_cls = int(cls)
+                    
+    # If no vehicle found, generate features for the whole image (fallback)
+    if best_box is None:
+        h, w = img.shape[:2]
+        best_box = [0, 0, w, h]
+        best_cls = 2 # Assume car if unknown
+        
+    # Extract Features
+    # 1. Color
+    color_data = extract_vehicle_color(img, best_box)
+    
+    # 2. Size
+    size_data = extract_vehicle_size(best_box, img.shape)
+    
+    # 3. Type
+    class_names = {2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
+    v_type = class_names.get(best_cls, "car")
+    
+    query_event = {
+        "vehicle_type": v_type,
+        "color": color_data['dominant_color'],
+        "rgb_value": color_data['rgb_value'],
+        "color_histogram": color_data['color_histogram'],
+        "size_class": size_data['size_class'],
+        "aspect_ratio": size_data['aspect_ratio'],
+        "plate_text": "" 
+    }
+    
+    return query_event, best_box
+
+def search_by_visuals(query_event, db_data, top_k=20):
+    """
+    Scans the database and finds matches based on visual similarity.
+    """
+    scored_candidates = []
+    
+    for vid, event in db_data.items():
+        score = calculate_similarity(query_event, event)
+        if score > 0.2: 
+            scored_candidates.append((score, event))
+            
+    scored_candidates.sort(key=lambda x: x[0], reverse=True)
+    
+    return scored_candidates[:top_k]

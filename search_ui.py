@@ -6,7 +6,8 @@ import cv2
 import tempfile
 import threading
 from datetime import datetime
-from search_tool import extract_snippet, string_similarity
+from tkinter import filedialog
+from search_tool import extract_snippet, string_similarity, analyze_image, search_by_visuals
 
 class VehicleSearchApp:
     def __init__(self, root):
@@ -84,6 +85,9 @@ class VehicleSearchApp:
         
         # Routemap Button (Right Bottom)
         ttk.Button(ctrl_frame, text="Generate Routemap", command=self.generate_routemap).pack(side="right", padx=5)
+        
+        # Visual Search Button (Right Bottom)
+        ttk.Button(ctrl_frame, text="Search by Image", command=self.browse_image).pack(side="right", padx=5)
         
         self.status_var = tk.StringVar()
         self.status_var.set("Ready")
@@ -269,6 +273,61 @@ class VehicleSearchApp:
             self.status_var.set("Sequence finished.")
             
         threading.Thread(target=run_sequence).start()
+
+    def browse_image(self):
+        file_path = filedialog.askopenfilename(
+            filetypes=[("Images", "*.jpg *.jpeg *.png *.bmp")]
+        )
+        if not file_path:
+            return
+            
+        self.status_var.set("Analyzing image...")
+        
+        def run_analysis():
+            try:
+                query_event, best_box = analyze_image(file_path)
+                
+                if not query_event:
+                    self.root.after(0, lambda: messagebox.showinfo("Info", "No vehicle detected."))
+                    self.root.after(0, lambda: self.status_var.set("Analysis failed."))
+                    return
+
+                # Auto-fill Filters (Main Thread)
+                def update_ui():
+                    # Color
+                    color = query_event.get('color', '')
+                    if color:
+                        self.entry_color.delete(0, tk.END)
+                        self.entry_color.insert(0, color)
+                    
+                    # Type (Optional, but users usually want this too)
+                    v_type = query_event.get('vehicle_type', '')
+                    if v_type:
+                        self.entry_type.delete(0, tk.END)
+                        self.entry_type.insert(0, v_type)
+                        
+                    # Run Text Search First
+                    self.perform_search()
+                    
+                    # Visual Re-Ranking
+                    # Now we take the results from perform_search (which are filtered by color/type)
+                    # and sort them by visual similarity to the query image
+                    if self.matches:
+                         scored = search_by_visuals(query_event, {m['vehicle_id']: m for m in self.matches}, top_k=len(self.matches))
+                         # Update matches with sorted list
+                         self.matches = [s[1] for s in scored]
+                         self.populate_results_tree()
+                         self.status_var.set(f"Found {len(self.matches)} matches (Color Filtered & Sorted).")
+                    else:
+                         self.status_var.set(f"No matches found for {color} {v_type}.")
+
+                self.root.after(0, update_ui)
+                
+            except Exception as e:
+                print(e)
+                self.root.after(0, lambda: messagebox.showerror("Error", f"Analysis error: {e}"))
+
+        threading.Thread(target=run_analysis).start()
 
     def generate_routemap(self):
         if not self.matches:
