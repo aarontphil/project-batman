@@ -1,4 +1,4 @@
-# Project Batman: Vehicle Detection & Search System
+# Project Cypher: Vehicle Detection & Search System
 
 A comprehensive computer vision system designed to detect, track, and catalog vehicles from CCTV footage. The system utilizes YOLOv8 for accurate specific object detection and provides a graphical user interface (UI) for searching and reviewing vehicle sightings based on attributes like color, type, and license plate.
 
